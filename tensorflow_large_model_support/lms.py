@@ -14,14 +14,14 @@
 # ==============================================================================
 """LMS
 """
-import tensorflow as tf
-import tensorflow.contrib.graph_editor as ge
-from tensorflow.contrib.graph_editor import util
-
 import time
-from six.moves import queue as Queue
-from tensorflow_large_model_support import topos
 from enum import Enum
+
+from six.moves import queue as Queue
+import tensorflow as tf
+import graph_def_editor as ge
+
+from tensorflow_large_model_support import topos
 
 
 class CTRLD_Strategy(Enum):
@@ -204,7 +204,7 @@ class LMS(object):
                             if not (op in self._grad_ops)]
             for op in non_grad_ops:
                 for t in op.outputs:
-                    frontier_ops = set(util.get_consuming_ops(t))
+                    frontier_ops = set(ge.util.get_consuming_ops(t))
                     if (frontier_ops & self._grad_ops):
                         candidates.add(op)
                         break
@@ -376,7 +376,7 @@ class LMS(object):
             # get next ops before the graph is changed
             next_ops = set()
             for t in src_op.outputs:
-                frontier_ops = set(util.get_consuming_ops(t))
+                frontier_ops = set(ge.util.get_consuming_ops(t))
                 next_ops |= frontier_ops - self._grad_ops
 
             # do action for src_op
@@ -490,7 +490,7 @@ class LMS(object):
             if self._swapped_max_tensors():
                 return
 
-            frontier_ops = set(util.get_consuming_ops(t))
+            frontier_ops = set(ge.util.get_consuming_ops(t))
             self._log_info("my frontier ops: {}".format(frontier_ops), 2)
 
             bw_frontier_ops = frontier_ops & self._grad_ops
@@ -690,7 +690,7 @@ class LMS(object):
 
             frontier_ops = set()
             for t in src_op.outputs:
-                frontier_ops |= set(util.get_consuming_ops(t))
+                frontier_ops |= set(ge.util.get_consuming_ops(t))
             has_order_ops = {
                 op
                 for op in frontier_ops
@@ -757,7 +757,7 @@ class LMS(object):
             # do action for src_op
             total_consumming_ops = set()
             for t in src_op.outputs:
-                consumming_ops = set(util.get_consuming_ops(t))
+                consumming_ops = set(ge.util.get_consuming_ops(t))
                 total_consumming_ops |= consumming_ops
 
             if lower_b <= 0:

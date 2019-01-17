@@ -19,11 +19,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow_large_model_support as lms
-from tensorflow_large_model_support import topos
 import unittest
-import mock
+from unittest import mock
 
+import graph_def_editor as ge
+
+from tensorflow_large_model_support import topos
 
 class TOPOSTest(unittest.TestCase):
 

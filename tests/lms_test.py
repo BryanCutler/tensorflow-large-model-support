@@ -22,7 +22,7 @@ from __future__ import print_function
 from six import assertCountEqual
 import tensorflow_large_model_support as lms
 import unittest
-import mock
+from unittest import mock
 
 
 class LMSTest(unittest.TestCase):

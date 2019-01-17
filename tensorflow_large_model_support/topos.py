@@ -18,8 +18,7 @@
 from six.moves import queue as Queue
 import toposort
 
-import tensorflow.contrib.graph_editor as ge
-from tensorflow.contrib.graph_editor import util
+import graph_def_editor as ge
 
 
 class TOPOS(object):
@@ -85,13 +84,13 @@ class TOPOS(object):
             # do action for src_op
             dep_ops = set(src_op.control_inputs)
             for t in src_op.inputs:
-                dep_ops |= set(util.get_generating_ops(t))
+                dep_ops |= set(ge.util.get_generating_ops(t))
                 dep_ops &= reachable_ops
             dep_dict[src_op] = dep_ops
 
             next_ops = set()
             for t in src_op.outputs:
-                next_ops |= set(util.get_consuming_ops(t))
+                next_ops |= set(ge.util.get_consuming_ops(t))
             for op in next_ops:
                 if op in closed_set:
                     continue
