@@ -22,8 +22,6 @@ from __future__ import print_function
 import unittest
 from unittest import mock
 
-import graph_def_editor as ge
-
 from tensorflow_large_model_support import topos
 
 class TOPOSTest(unittest.TestCase):
@@ -47,9 +45,9 @@ class TOPOSTest(unittest.TestCase):
         self.assertTrue(build_order.called)
         self.assertEqual(topo_test._bw_starting_order, 2)
 
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_consuming_ops')
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_generating_ops')
-    @mock.patch('tensorflow.contrib.graph_editor.get_walks_intersection_ops')
+    @mock.patch('graph_def_editor.util.get_consuming_ops')
+    @mock.patch('graph_def_editor.util.get_generating_ops')
+    @mock.patch('graph_def_editor.get_walks_intersection_ops')
     def test_build_dependency_dict(self, intersec, get_gen, get_cons):
         ops = [mock.Mock(name=('op%s' % x),
                          control_inputs=set(),
@@ -122,7 +120,7 @@ class TOPOSTest(unittest.TestCase):
                         3: {'g1', 'g2'}}
         self.assertDictEqual(topo_test._topo_sort, expected_val)
 
-    @mock.patch('tensorflow.contrib.graph_editor.get_forward_walk_ops')
+    @mock.patch('graph_def_editor.get_forward_walk_ops')
     def test_clean_update_ops(self, fwd_walk):
         grad_ops = {'g1', 'g2'}
         topo_test = topos.TOPOS({}, grad_ops)

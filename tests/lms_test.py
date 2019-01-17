@@ -28,7 +28,7 @@ from unittest import mock
 class LMSTest(unittest.TestCase):
 
     @mock.patch('tensorflow_large_model_support.lms.LMS._connect_ops')
-    @mock.patch('tensorflow.contrib.graph_editor.sgv')
+    @mock.patch('graph_def_editor.sgv')
     @mock.patch('tensorflow.identity')
     def test_add_swapout(self, identity, sgv, connect_ops):
         graph = mock.Mock()
@@ -50,7 +50,7 @@ class LMSTest(unittest.TestCase):
         self.assertEqual(lms_modifier._excl_ops, {swap_out.op})
 
     @mock.patch('tensorflow_large_model_support.lms.LMS._connect_ops')
-    @mock.patch('tensorflow.contrib.graph_editor.sgv')
+    @mock.patch('graph_def_editor.sgv')
     @mock.patch('tensorflow.identity')
     def test_add_swapin(self, identity, sgv, connect_ops):
         graph = mock.Mock()
@@ -85,7 +85,7 @@ class LMSTest(unittest.TestCase):
         ret = lms_test._get_branch_ops(within_ops, threshold)
         self.assertEqual(ret, {'f5', 'f6'})
 
-    @mock.patch('tensorflow.contrib.graph_editor.sgv')
+    @mock.patch('graph_def_editor.sgv')
     @mock.patch('tensorflow_large_model_support.lms.LMS._connect_ops')
     @mock.patch('tensorflow_large_model_support.lms.LMS._add_control_dependency')
     @mock.patch('tensorflow.identity')
@@ -131,7 +131,7 @@ class LMSTest(unittest.TestCase):
     @mock.patch('tensorflow_large_model_support.lms.LMS._add_swapin')
     @mock.patch('tensorflow_large_model_support.lms.LMS._add_swapout')
     @mock.patch('tensorflow_large_model_support.lms.LMS._get_forward_walk_ops')
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_consuming_ops')
+    @mock.patch('graph_def_editor.util.get_consuming_ops')
     def test_insert_swap_nodes(self, consuming_ops, fwd_walk_ops, swapout,
                                swapin, ctrldep, fuse_swapins, find_new_src):
         graph = mock.Mock()
@@ -270,7 +270,7 @@ class LMSTest(unittest.TestCase):
         lms_test._insert_swap_nodes(src_op)
         self.assertFalse(consuming_ops.called)
 
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_consuming_ops')
+    @mock.patch('graph_def_editor.util.get_consuming_ops')
     def test_find_new_src_op(self, get_cons):
         ts = mock.Mock()
         lms_test = lms.LMS({'s1'})
@@ -289,8 +289,8 @@ class LMSTest(unittest.TestCase):
         new_src_ops = lms_test._find_new_src_op(original_op)
         self.assertEqual(new_src_ops, {frontier2})
 
-    @mock.patch('tensorflow.contrib.graph_editor.connect')
-    @mock.patch('tensorflow.contrib.graph_editor.sgv')
+    @mock.patch('graph_def_editor.connect')
+    @mock.patch('graph_def_editor.sgv')
     def test_connect_ops(self, sgv, connect):
         graph = mock.Mock()
         lms_test = lms.LMS({'s1'}, graph=graph)
@@ -319,7 +319,7 @@ class LMSTest(unittest.TestCase):
                                         dest_sgv.remap_inputs.return_value,
                                         dcf)
 
-    @mock.patch('tensorflow.contrib.graph_editor.get_name_scope_ops')
+    @mock.patch('graph_def_editor.get_name_scope_ops')
     def test_filter_scopes_and_types(self, get_name_scope_ops):
         op1 = mock.Mock(type='a')
         op2 = mock.Mock(type='b')
@@ -356,8 +356,8 @@ class LMSTest(unittest.TestCase):
         ret = lms_test._filter_scopes_and_types(within_ops, {}, input_types)
         assertCountEqual(self, ret, {op1, op3, op5})
 
-    @mock.patch('tensorflow.contrib.graph_editor.make_list_of_op')
-    @mock.patch('tensorflow.contrib.graph_editor.filter_ops_from_regex')
+    @mock.patch('graph_def_editor.make_list_of_op')
+    @mock.patch('graph_def_editor.filter_ops_from_regex')
     def test_build_gradient_ops(self, filter_ops, make_list):
         graph = mock.Mock()
         filter_ops.side_effect = [['a', 'b', 'c'], ['d']]
@@ -380,7 +380,7 @@ class LMSTest(unittest.TestCase):
         self.assertRaisesRegex(ValueError, 'optimizer scope s2',
                                lms_test._build_gradient_ops)
 
-    @mock.patch('tensorflow.contrib.graph_editor.get_forward_walk_ops')
+    @mock.patch('graph_def_editor.get_forward_walk_ops')
     def test_get_forward_walk_ops(self, fwd_walk):
         lms_test = lms.LMS({'s1'})
         ops_dict = {mock.sentinel.op1: [mock.sentinel.op1, mock.sentinel.op10],
@@ -410,7 +410,7 @@ class LMSTest(unittest.TestCase):
     @mock.patch('tensorflow_large_model_support.lms.LMS._do_action')
     @mock.patch('tensorflow_large_model_support.topos.TOPOS.build')
     @mock.patch('tensorflow_large_model_support.lms.LMS._filter_scopes_and_types')
-    @mock.patch('tensorflow.contrib.graph_editor.get_forward_walk_ops')
+    @mock.patch('graph_def_editor.get_forward_walk_ops')
     @mock.patch('tensorflow_large_model_support.lms.LMS._get_forward_walk_ops')
     @mock.patch('tensorflow_large_model_support.lms.LMS._get_seed_ops')
     @mock.patch('tensorflow_large_model_support.lms.LMS._build_gradient_ops')
@@ -462,7 +462,7 @@ class LMSTest(unittest.TestCase):
         self.assertEqual(lms_test._n_tensors, 0)
 
     @mock.patch('tensorflow_large_model_support.lms.LMS._insert_swap_nodes')
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_consuming_ops')
+    @mock.patch('graph_def_editor.util.get_consuming_ops')
     def test_do_action(self, get_cons, swap):
         lms_test = lms.LMS({'s1'})
         src_ops = [mock.Mock() for x in range(2)]
@@ -510,10 +510,10 @@ class LMSTest(unittest.TestCase):
         # seed ops will swap 2 tensors each, and 3 other ops will each swap 1
         self.assertEqual(swap.call_count, 5)
 
-    @mock.patch('tensorflow.contrib.graph_editor.filter_ops_from_regex')
-    @mock.patch('tensorflow.contrib.graph_editor.make_list_of_op')
-    @mock.patch('tensorflow.contrib.graph_editor.get_forward_walk_ops')
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_consuming_ops')
+    @mock.patch('graph_def_editor.filter_ops_from_regex')
+    @mock.patch('graph_def_editor.make_list_of_op')
+    @mock.patch('graph_def_editor.get_forward_walk_ops')
+    @mock.patch('graph_def_editor.util.get_consuming_ops')
     def test_get_seed_ops(self, get_consuming, get_fwd_walk, make_list,
                           filter_ops):
         graph = mock.Mock()
@@ -604,7 +604,7 @@ class LMSTest(unittest.TestCase):
         # check for specific mock operations.
         self.assertEqual(len(ret), 2)
 
-    @mock.patch('tensorflow.contrib.graph_editor.add_control_inputs')
+    @mock.patch('graph_def_editor.add_control_inputs')
     @mock.patch('tensorflow_large_model_support.lms.LMS._do_direct_order')
     @mock.patch('tensorflow_large_model_support.lms.LMS._do_chain_rule')
     def test_add_control_dependency(self, do_chain, do_direct, add_ctrl_input):
@@ -687,7 +687,7 @@ class LMSTest(unittest.TestCase):
                                           10, 20)
         self.assertEqual(do_chain.call_count, 0)
 
-    @mock.patch('tensorflow.contrib.graph_editor.util.get_consuming_ops')
+    @mock.patch('graph_def_editor.util.get_consuming_ops')
     @mock.patch('tensorflow_large_model_support.lms.LMS._do_direct_order')
     def test_do_chain_rule(self, direct_order, cons_ops):
         lms_test = lms.LMS({'s1'})
@@ -732,7 +732,7 @@ class LMSTest(unittest.TestCase):
         ret = lms_test._do_chain_rule(fwd_op, bw_op, 1, 10)
         self.assertEqual(ret, (grad_op, 7))
 
-    @mock.patch('tensorflow.contrib.graph_editor.get_forward_walk_ops')
+    @mock.patch('graph_def_editor.get_forward_walk_ops')
     def test_do_direct_order(self, get_fwd_walk):
         lms_test = lms.LMS({'s1'})
         lms_test._topo_sort = mock.Mock()
