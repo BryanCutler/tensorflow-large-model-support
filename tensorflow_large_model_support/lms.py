@@ -199,9 +199,7 @@ class LMS(object):
         seed_ops = list(seed_ops)
         if not seed_ops:
             candidates = set()
-            non_grad_ops = [op
-                            for op in self._graph.get_operations()
-                            if not (op in self._grad_ops)]
+            non_grad_ops = [op for op in ops if not (op in self._grad_ops)]
             for op in non_grad_ops:
                 for t in op.outputs:
                     frontier_ops = set(ge.util.get_consuming_ops(t))
@@ -246,8 +244,8 @@ class LMS(object):
         found_types = set()
         type_ops = set()
         for op in within_ops:
-            if op.type in types:
-                found_types.add(op.type)
+            if op.op_type in types:
+                found_types.add(op.op_type)
                 type_ops.add(op)
 
         # We remove ATOMIC_TYPES from the input list of types because
@@ -288,7 +286,7 @@ class LMS(object):
           a set of added ops.
         """
         if graph:
-            self._graph = graph
+            self._graph = ge.Graph(graph)
 
         if self._n_tensors == 0:
             self._log_info("LMS is disabled and will not modify the model.")
@@ -309,7 +307,7 @@ class LMS(object):
 
         self._log_info(
             "Starting ops: {}".format(
-                [(op.name, op.type) for op in seed_ops]), 1)
+                [(op.name, op.op_type) for op in seed_ops]), 1)
 
         reachable_ops = set()
         for seed_op in seed_ops:
@@ -345,7 +343,7 @@ class LMS(object):
         for seed_op in seed_ops:
             new_reachable_ops |= set(ge.get_forward_walk_ops(seed_op))
         new_reachable_ops -= self._grad_ops
-        if (new_reachable_ops >= reachable_ops):
+        if new_reachable_ops >= reachable_ops:
             self._log_info("Edited model is valid and logically equivalent to the original one")
             self._log_info("Added {} ops into the model".format(len(new_reachable_ops - reachable_ops)))
         else:
@@ -356,7 +354,7 @@ class LMS(object):
         self._log_info(
             "{} tensors will be swapped out(in) to(from) the host".format(
                 self._incpu_count))
-        return (new_reachable_ops - reachable_ops)
+        return new_reachable_ops - reachable_ops
 
     def _do_action(self, src_ops):
         """Add swapin and swapout ops for ops that are reachable from `src_ops`.
@@ -514,7 +512,7 @@ class LMS(object):
 
             self._log_info("Operation: {}, order {}, type {}".format(
                 src_op.name, self._topo_sort.get_order(src_op),
-                src_op.type), 1)
+                src_op.op_type), 1)
 
             # create swap_out node only if there exists a real dest. operation
             swapout_op = None
@@ -565,19 +563,19 @@ class LMS(object):
         Return:
           A `tf.Operation` newly added to the graph.
         """
-        with tf.device(self._cpu_device):
-            swap_out = tf.identity(ts0, name="lms/swapout")
+        swap_out = ge.util.make_identity(self._graph, "lms/swapout", ts0, uniquify_name=True)
+        swap_out.device = self._cpu_device
 
         # Connect: src-node -> swap-out
         src_svg = ge.sgv(src_op, graph=self._graph)
         src_out_idx = src_svg.output_index(ts0)
-        self._connect_ops(src_op, swap_out.op, remap_outputs=True,
+        self._connect_ops(src_op, swap_out, remap_outputs=True,
                           idx=src_out_idx)
-        self._excl_ops.add(swap_out.op)
+        self._excl_ops.add(swap_out)
         self._log_info("Tensor {} will be placed on {}".format(
             ts0.name, self._cpu_device), 1)
 
-        return swap_out.op
+        return swap_out
 
     def _add_swapin(self, swapout_op, dest_op, ts0):
         """Add a swapin operation to the graph. The swapin ops reads
@@ -604,23 +602,23 @@ class LMS(object):
         Return:
           A `tf.Operation` newly added to the graph.
         """
-        with tf.device(self._cpu_device):
-            swap_in = tf.identity(ts0, name="lms/swapin")
+        swap_in = ge.util.make_identity(self._graph, "lms/swapin", ts0, uniquify_name=True)
+        swap_in.device = self._cpu_device
 
         # Connect: swap_out -> swap_in
-        self._connect_ops(swapout_op, swap_in.op)
+        self._connect_ops(swapout_op, swap_in)
 
         # Connect: swap_in -> dest
         dest_svg = ge.sgv(dest_op, graph=self._graph)
         input_idx = dest_svg.input_index(ts0)
-        self._connect_ops(swap_in.op, dest_op, remap_inputs=True, idx=input_idx)
-        self._excl_ops.add(swap_in.op)
+        self._connect_ops(swap_in, dest_op, remap_inputs=True, idx=input_idx)
+        self._excl_ops.add(swap_in)
 
         self._log_info("Consuming op {} (order {}) swaps in {}".format(
             dest_op.name, self._topo_sort.get_order(dest_op),
             ts0.name), 1)
 
-        return swap_in.op
+        return swap_in
 
     def _add_control_dependency(self, fw_op, bw_op, swapin_op):
         """Find and add a control dependency to the graph.
@@ -650,7 +648,7 @@ class LMS(object):
         ctrld_op = re[0]
         ctrld_order = re[1]
         if ctrld_op:
-            ge.add_control_inputs(swapin_op, ctrld_op)
+            ge.reroute.add_control_inputs(swapin_op, ctrld_op)
             self._log_info(
                 "Control dependency op {},  order: {}".format(
                     ctrld_op.name, ctrld_order), 1)
