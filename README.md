@@ -1,8 +1,10 @@
-# TensorFlow Large Model Support: Graph Editing Library for Large Model Support (LMS) in TensorFlow
+# TensorFlow Large Model Support GDE: Graph Editing Library for Large Model Support (LMS) in TensorFlow using GraphDef Editor
 
 This library provides an approach to training large models that cannot be fit into GPU memory.
 It takes a computational graph defined by users, and automatically adds swap-in and swap-out nodes for transferring tensors from GPUs to the host and vice versa.
 The computational graph is statically modified. Hence, it needs to be done before a session actually starts.
+
+This is a fork of [Large Model Support](https://github.com/IBM/tensorflow-large-model-support) designed to be used with [GraphDef Editor](https://github.com/CODAIT/graph_def_editor)
 
 ## Install
 TensorFlow Large Model Support can be installed as a pip module named
@@ -10,7 +12,7 @@ TensorFlow Large Model Support can be installed as a pip module named
 TensorFlow Large Model Support, run the following commands to clone this repository
 and install the module:
 ```sh
-git clone https://github.com/IBM/tensorflow-large-model-support.git
+git clone https://github.com/BryanCutler/tensorflow-large-model-support-gde.git
 pip install tensorflow_large_model_support
 ```
 
