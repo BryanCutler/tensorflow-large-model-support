@@ -118,7 +118,7 @@ class LMS(object):
         if not optimizer_scopes:
             raise ValueError('A least one optimizer scope is required.')
 
-        self._graph = graph
+        self._graph = ge.Graph(graph)
         self._optimizer_scopes = optimizer_scopes
         self._excl_scopes = excl_scopes
         self._incl_scopes = incl_scopes
@@ -276,14 +276,13 @@ class LMS(object):
                 return list(set(ret) - {op})
 
     def run(self, graph=None):
-        """Edit the graph by adding swapin and swapout ops.
+        """Convert graph with GraphDef Editor, then edit the graph def by
+        adding swapin and swapout ops.
 
         Swapin and swapout ops are in the host.
 
-        The graph is modified in-place.
-
         Return:
-          a set of added ops.
+          the edited `tf.Graph`, a set of added ops.
         """
         if graph:
             self._graph = ge.Graph(graph)
@@ -354,7 +353,7 @@ class LMS(object):
         self._log_info(
             "{} tensors will be swapped out(in) to(from) the host".format(
                 self._incpu_count))
-        return new_reachable_ops - reachable_ops
+        return self._graph.to_tf_graph(), new_reachable_ops - reachable_ops
 
     def _do_action(self, src_ops):
         """Add swapin and swapout ops for ops that are reachable from `src_ops`.
