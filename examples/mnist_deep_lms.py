@@ -155,25 +155,33 @@ def main(_):
   lms_model = LMS({'adam_optimizer'},
                   excl_scopes={'loss', 'accuracy', 'dropout'},
                   lb=3)
-  lms_model.run(tf.get_default_graph())
+  lms_graph, _ = lms_model.run(tf.get_default_graph())
 
-  graph_location = tempfile.mkdtemp()
-  print('Saving graph to: %s' % graph_location)
-  train_writer = tf.summary.FileWriter(graph_location)
-  train_writer.add_graph(tf.get_default_graph())
+  # Need to update tensors and operations for new lms_graph
+  x = lms_graph.get_tensor_by_name(x.name)
+  y_ = lms_graph.get_tensor_by_name(y_.name)
+  keep_prob = lms_graph.get_tensor_by_name(keep_prob.name)
+  train_step = lms_graph.get_operation_by_name(train_step.name)
+  accuracy = lms_graph.get_tensor_by_name(accuracy.name)
 
-  with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    for i in range(20000):
-      batch = mnist.train.next_batch(50)
-      if i % 100 == 0:
-        train_accuracy = accuracy.eval(feed_dict={
-            x: batch[0], y_: batch[1], keep_prob: 1.0})
-        print('step %d, training accuracy %g' % (i, train_accuracy))
-      train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+  with lms_graph.as_default():
+    graph_location = tempfile.mkdtemp()
+    print('Saving graph to: %s' % graph_location)
+    train_writer = tf.summary.FileWriter(graph_location)
+    train_writer.add_graph(tf.get_default_graph())
 
-    print('test accuracy %g' % accuracy.eval(feed_dict={
-        x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
+    with tf.Session() as sess:
+      sess.run(tf.global_variables_initializer())
+      for i in range(20000):
+        batch = mnist.train.next_batch(50)
+        if i % 100 == 0:
+          train_accuracy = accuracy.eval(feed_dict={
+              x: batch[0], y_: batch[1], keep_prob: 1.0})
+          print('step %d, training accuracy %g' % (i, train_accuracy))
+        train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+
+      print('test accuracy %g' % accuracy.eval(feed_dict={
+          x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
